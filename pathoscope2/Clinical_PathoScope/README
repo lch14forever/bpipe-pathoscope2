@@ -1,0 +1,124 @@
+=======================================
+README FOR CLINICAL PATHOSCOPE 1.0
+=======================================
+
+Introduction:
+
+Clinical Pathoscope is a program to identify pathogens/commensals/contaminants in unassembled sequencing reads. 
+
+1. Installation
+
+1.1 Download bowtie2 from http://sourceforge.net/projects/bowtie-bio/
+	
+1.2 Download Clinical Pathoscope code from http://sourceforge.net/projects/...
+	
+1.3 Extract code to a separate folder
+	You could issue the following command to extract the files:
+	"tar zxvf clinical_pathoscope.tar.gz"
+
+2. Running
+
+2.1 Prerequisite: Need to have python 2.7.3 or later version installed and add python to your PATH variable (Usually already done as part of python installation) 
+
+	2.1.1 For earlier versions of python, you will need to install the argparse module: https://pypi.python.org/pypi/argparse
+
+2.2 Change directory to where you extracted the code 
+
+2.3 Create a config file by filling in the necessary information shown in example_config.txt
+
+2.4 Simply run runClinicalPathoscope.py with the config file to generate the shell script to run Clinical Pathoscope for a particular sample
+
+	"python runClinicalPathoscope.py config.txt"
+
+2.5 Output files
+
+2.5.1 TSV file format (You may need to rename this file as .csv for opening in some version of Excel such as LibreOffice):
+
+    At the top of the file in the first row, there are two fields called "Total Number of Aligned Reads" and "Total Number of Mapped Genomes". They represent the total number of reads that are aligned and the total number of genomes to which those reads align from the given alignment file.
+
+Columns in the TSV file:
+1. Genome:
+   This is the name of the genome found in the alignment file.
+2. Final Guess:
+    This represent the percentage of reads that are mapped to the genome in Column 1 (reads aligning to multiple genomes are assigned proportionally) after pathoscope reassignment is performed.
+3. Final Best Hit:
+    This represents the percentage of reads that have their the highest score mapped to the genome in Column 1 after the pathoscope reassignment is performed. Difference between this an the previous is that second-highest (etc) scores are ignored.
+4. Final Best Hit Read Numbers:
+    This represent the number reads that have their highest score mapped to the genome in Column 1 (may include a fraction when a read is aligned to multiple top hit genomes with the same highest score) and after pathoscope reassignment is performed.
+5. Final High Confidence Hits:
+    This represent the percentage of reads that are mapped to the genome in Column 1 with a high confidence alignment (50%-100% alignment probability) to this genome and after pathoscope reassignment is performed. If this value is equal to the value in #2, then all the reads are 
+6. Final Low Confidence Hits:
+    This represent the percentage of reads that are mapped to the genome in Column 1 with an a low alignment hit score (1%-50%) to this genome and after pathoscope reassignment is performed. These reads are shared with other genomes and their "best hit" could be to another genome.
+7. Initial Guess:
+    This represent the percentage of reads that are mapped to the genome in Column 1 (reads aligning to multiple genomes are assigned proportionally) before pathoscope reassignment is performed.
+8. Initial Best Hit:
+     This represents the percentage of reads that have their the highest score mapped to the genome in Column 1 before the pathoscope reassignment is performed. Difference between this an the previous is that second-highest (etc) scores are ignored.
+9. Initial Best Hit Read Numbers:
+    This represent the number of best hit reads that are mapped to the genome in Column 1 (may include a fraction when a read is aligned to multiple top hit genomes with the same highest score) and before pathoscope reassignment is performed.
+10. Initial High Confidence Hits:
+    This represent the percentage of reads that are mapped to the genome in Column 1 with an alignment hit score of 50%-100% to this genome and before pathoscope reassignment is performed.
+11. Initial Low Confidence Hits:
+    This represent the percentage of reads that are mapped to the genome in Column 1 with an alignment hit score of 1%-50% to this genome and before pathoscope reassignment is performed.
+
+2.5.2 Updated alignment file:
+	Clinical Pathoscope will generate an updated .sam alignment file. This updated file will contain all reads in the input file, but replacing the previous alignment scores with post-Pathoscope reassignment scores. Alignments that don't achieve the Pathoscope threshold value (parameter -s, default 0.01) will be deleted from this file. For example, for a default score, the updated file will not retain any alignments with reassignment probabilities less that 1% after Pathoscope. This means that the updated file will likely be smaller than the original, and will contain only the high-probability reassignments. This new file can then be used for downstream analyses such as SNP calling, and genome/scaffold assembly. 
+
+2.5.3 Shell script containing all commands and parameters that were executed during a given run. This allows the user to reproduce their exact analysis.
+
+3. Additional Information 
+
+3.1 Clincal Pathoscope comes bundled with the original Pathoscope (Version 1.0 ), 3 prebuilt bowtie2 databases for human, bacteria, and virus, and our 1 simulated dataset. 
+
+3.2 The human host library consisted of two sequences; the GRCh37/hg19 build of the human genome, as well as the human ribosomal DNA sequence [GenBank:U13369]. 
+
+3.3 The bacterial library was downloaded from NCBI (ftp://ftp.ncbi.nlm.nih.gov/genomes/Bacteria/all.fna.tar.gz, 12/15/12).
+
+3.4 The viral library was also obtained from NCBI (ftp://ftp.ncbi.nlm.nih.gov/genomes/Viruses/all.fna.tar.gz, 1/10/13). 
+
+3.5 To use databases other than those provided with the software, the user must provide their own Bowtie2 indexes. See http://bowtie-bio.sourceforge.net/bowtie2/manual.shtml for specific details regarding how to create an index using Bowtie2.
+
+3.6 For the simulated reads (simulated_sample.fastq), 10 million 100-base-pair (bp) reads were generated for each sample with 90% of reads originating from the host transcriptome (human RNA), 9% from bacterial genomes, and 1% from viral genomes.
+
+Simulated reads composition (Accession Number | Name):
+Bateria:
+gi|296112228 | Moraxella_catarrhalis_RH4_chromosome,_complete_genome
+gi|378696079 | Haemophilus_influenzae_10810,_complete_genome
+gi|16271976 | Haemophilus_influenzae_Rd_KW20_chromosome,_complete_genome
+gi|387787130 | Streptococcus_pneumoniae_ST556_chromosome,_complete_genome
+gi|392427891 | Streptococcus_intermedius_JTH08,_complete_genome
+Virus:
+gi|49169782 | Human coronavirus NL63 (HCoV-NL63)	
+gi|9627719 | Human enterovirus A (HEV-A)	
+gi|160700581 | Human rhinovirus C (HRV-C)	
+gi|8486122,gi|8486125,gi|8486127,gi|8486129 | Influenza A virus (A/Puerto Rico/8/34/H1N1)
+gi|8486131,gi|8486134,gi|8486136,gi|8486138 | (H1N1)	
+gi|77125236 | Human bocavirus (HBoV)	
+gi|56160876 | Human adenovirus type 7 (AdV7)	
+
+4. License: GNU-GPL
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+5. Support and Contact
+
+5.1 Pathoscope is developed at the JohnsonLab in Boston University.
+W. Evan Johnson, Ph.D.
+Division of Computational Biomedicine
+Boston University School of Medicine
+72 E. Concord St., E-645
+Boston, MA 02118
+
+5.2: For support queries, please open a ticket or contact us at 
+jperezrogers@users.sourceforge.net
+https://sourceforge.net/p/pathoscope/tickets/
+

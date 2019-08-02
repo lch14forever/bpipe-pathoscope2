@@ -1,0 +1,117 @@
+load './pathoscope.bconfig'
+// usage::  ~lich/local/bin/bpipe-0.9.8.6_rc/bin/bpipe run -n <NUM THREADS> -p PATTERN=<'split pattern'>  ~lich/project/pathoscope-bpipe/run_pathoscope.bpipe READ_1.fastq READ_2.fastq(.gz) [or *fastq(.gz)] 
+
+
+PATTERN = '%_'
+
+out_prefix = {
+	   branch.PREFIX = branch.name
+	   branch.FilterPREFIX = "$FILTER".split("/").last().split("\\.")[0]
+	   branch.RefPREFIX = "$REF".split("/").last().split("\\.")[0]
+	   branch.SUFFIX = "$input1".split("/").last().split("\\.").last()
+	   forward input
+}
+
+path_MAP = {
+	 doc title: "Run pathoscope mapping without database"
+	 produce ("${PREFIX}.sam"){
+	 	   branch.MAP_CMD = """
+		   	/mnt/software/bin/python2.7 ~lich/project/pathoscope-bpipe/pathoscope2/pathoscope/pathoscope.py MAP 
+			       -1 $input1 
+			       -2 $input2
+			       -targetRefFiles $REF 
+			       -indexDir $REF_DIR
+			        -outAlign $output -expTag $output.sam.prefix 
+				-numThreads $threads
+		   """
+		   if ("$FILTER" != ''){
+		      branch.MAP_CMD = "$MAP_CMD" + " -filterRefFiles $FILTER"
+		   }
+		   exec "$MAP_CMD"
+	 }
+	 forward input	 
+}
+
+
+path_ID = {
+	doc title: "Run pathoscope ID without database"
+	produce ("${PREFIX}-sam-report.tsv"){
+		exec """
+		     /mnt/software/bin/python2.7 ~lich/project/pathoscope-bpipe/pathoscope2/pathoscope/pathoscope.py ID 
+		     	    -alignFile ${PREFIX}.sam -expTag $PREFIX
+		"""
+	}
+	forward input
+}
+
+
+map_Stat = {
+	 doc title: "Get the basic statistics"	  
+	  // get the sam count samtools view -S -F 256 $input.sam
+	  // count_sam/(count_fq/2)
+	 produce ("${PREFIX}.map.report"){
+	 	 if("$SUFFIX" == 'gz'){
+		 	    branch.Stat_CMD = "NUM_READ_times_2=`zcat $input1 | wc -l`; "
+                 }
+		 else{
+			branch.Stat_CMD = "NUM_READ_times_2=`wc -l < $input1` "
+		 }
+		 branch.Stat_CMD = "$Stat_CMD" + """
+		 		 NUM_MAPPED=`samtools view -S -F 268 ${PREFIX}.sam 2> /dev/null | wc -l` ;
+		      		 echo "Number of mapped reads: $NUM_MAPPED" > $output;
+		      		 printf "Mapping rate: " >>$output;
+		      		 echo "scale=4; $NUM_MAPPED/($NUM_READ_times_2/2)" | bc -l >> $output
+		      """
+	 	exec "$Stat_CMD"
+	 }
+}
+
+report_profile = {
+	 doc title: "Report the percentage of each species"
+	 produce ("${PREFIX}.relative_abundances.report"){
+		exec """
+		     for i in `seq -w -s ' ' $NUM_SPECIES`;
+		     	 do 
+		     	    grep "ti|0*$i" ${PREFIX}-sam-report.tsv | awk '{t+=\$2}END{print t}' >>$output ;
+			 done
+		"""
+	}
+}
+
+
+
+compress_sam = {
+	 doc title: "convert SAM files to BAM"
+	 exec "samtools view -buS updated_${PREFIX}.sam | samtools sort - updated_${PREFIX}.sorted"
+	 //multi "samtools view -buS ${PREFIX}.sam |  samtools sort - ${PREFIX}.sorted",
+           //    "samtools view -buS updated_${PREFIX}.sam | samtools sort - updated_${PREFIX}.sorted"		      
+}
+
+clean_sam = {
+	 doc titile: "delete SAM files to save space"
+	 if ("$FILTER" != ''){
+	    multi "rm ${PREFIX}.sam",
+	       "rm updated_${PREFIX}.sam",
+	       "rm ${PREFIX}-${RefPREFIX}.sam",
+	       "rm ${PREFIX}-${FilterPREFIX}*.sam"
+	 }
+	 else{
+	    multi "rm ${PREFIX}.sam",
+	       "rm updated_${PREFIX}.sam"
+	 }
+	 exec "rm ${PREFIX}-appendAlign.fq"
+}
+
+presence_absence = {
+	doc title: "determine presence absence of a genome with 1kb window (10% covered by >1 read)"
+	exec """
+             ~lich/project/pathoscope-bpipe/presence_absence_from_cov.sh updated_${PREFIX}.sorted.bam $WINDOWS_BED > ${PREFIX}.presence_absense_cov.txt
+	"""
+}
+
+run { "$PATTERN" * [ out_prefix + path_MAP + path_ID + map_Stat + compress_sam + presence_absence + clean_sam]}
+
+
+
+// DEBUG: 
+// run { "WBE%_" * [ out_prefix + clean_sam ]}

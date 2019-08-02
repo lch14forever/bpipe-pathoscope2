@@ -1,0 +1,69 @@
+###########################################################################
+# CLINICAL PATHOSCOPE CONFIGURATION FILE FOR COMMAND LINE USAGE
+#
+# Please provide the COMPLETE PATH of a file, and do not include space in file names
+# Example inputs are as follows below
+# Please fill all the REQUIRED parameters (*)
+#
+###########################################################################
+
+# FASTQ FILE NAME (.fastq or .fq)
+# Should be a fastq file of reads which have already been quality controlled 
+*filename = /path/to/sample/my_sample.fastq
+
+# SCRIPTS AND EXECUTABLES DIRECTORIES
+*Clinical_Pathoscope_directory = /path/to/dir/Clinical_PathoScope
+
+#If bowtie2 is in your $PATH, please leave this input blank 
+*bowtie2_bin = /path/to/bowtie2-2.2.1
+
+# COMMA SEPARATED LIST OF DATABASES 																				
+# To use the preloaded databases please enter human, bacteria, virus
+#	For Example:
+#		*Target_Databases = virus
+#		Host_Filtration_Database = human
+#		Other_Filtration_Databases = bacteria
+#
+# For custom databases please enter the entire file path of the bowtie2 index 
+#	For Example:
+#		*Target_Databases = /path/to/databases/target_db1, /path/to/databases/target_db2, /path/to/databases/target_db3
+#		Host_Filtration_Database = human
+#		Other_Filtration_Databases = /path/to/databases/filter_db1, /path/to/databases/filter_db2 
+
+
+Preloaded_databases_directory = /path/to/databases
+*Target_Databases = bacteria
+Host_Filtration_Database = human
+Other_Filtration_Databases = virus
+
+
+# OUTPUT DIRECTORY (where the output files should be stored)
+#output_directory = /path/to/output
+
+# ALIGNING 16S SEQUENCES: YES or NO
+# Default: NO
+16S = NO
+
+# MODIFIABLE ALIGNMENT PARAMETERS
+# Adjusts the Bowtie2 -k flag parameter
+# Must be an integer value
+# Default: 10, for 16S: 1,000
+bowtie2_k = 10
+
+#Indicates the the format of the quality scores in the .fastq input file
+#Please pick one, (Default: --phred33)
+#From the Bowtie2 manual:
+#--phred33		Input qualities are ASCII chars equal to the Phred quality plus 33. This is also called the "Phred+33" encoding, which is used by the very latest Illumina pipelines.
+#--phred64		Input qualities are ASCII chars equal to the Phred quality plus 64. This is also called the "Phred+64" encoding.
+#--solexa-quals	Convert input qualities from Solexa (which can be negative) toPhred (which can't). This scheme was used in older Illumina GA Pipeline versions (prior to 1.3).
+#--int-quals		Quality values are represented in the read input file as space-separated ASCII integers, e.g., 40 40 30 40..., Integers are treated as being on the Phred quality scale unless --solexa-quals is also specified.
+bowtie_2_quality_score = --phred33
+
+# Must be an integer value
+# Default: 8
+num_threads = 8
+
+# Save the intermediate files YES or NO
+# Default: NO (delete all intermediate files)
+keep_intermediate_files = NO
+
